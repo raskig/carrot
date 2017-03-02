@@ -1,4 +1,10 @@
-# carrot
+# carrot: 
+
+##
+
+Library to keep your rabbits running...
+
+![alt tag](https://cloud.githubusercontent.com/assets/3204818/23513284/5d24a108-ff5b-11e6-8f0d-12126f820385.png) 
 
 A Clojure library designed to provide you with the implementation of the following simple RabbitMq delayed retry mechanism:
 ![alt tag](https://cloud.githubusercontent.com/assets/3204818/23512162/99eec068-ff57-11e6-9176-a883f79a9e22.png)
