@@ -1,7 +1,8 @@
 # carrot
 
 A Clojure library designed to provide you with the implementation of the following simple RabbitMq delayed retry mechanism:
-https://cloud.githubusercontent.com/assets/3204818/23512162/99eec068-ff57-11e6-9176-a883f79a9e22.png
+![alt tag](https://cloud.githubusercontent.com/assets/3204818/23512162/99eec068-ff57-11e6-9176-a883f79a9e22.png)
+
 
 The idea is the following:
 
