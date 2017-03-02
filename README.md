@@ -1,6 +1,7 @@
 # carrot
 
-A Clojure library designed to ... well, that part is up to you.
+A Clojure library designed to provide you with th eimplementation of the following simple RabbutMq delayer retry mechanism:
+https://cloud.githubusercontent.com/assets/3204818/23511194/43d41168-ff54-11e6-832b-12ded7f57a53.png
 
 ## Usage
 
