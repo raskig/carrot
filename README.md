@@ -5,7 +5,7 @@ https://cloud.githubusercontent.com/assets/3204818/23511194/43d41168-ff54-11e6-8
 
 ## Usage
 
-FIXME
+No need to worry if the above diagram seems to be too complicated. The idea is that you give custom names to the queues and exchanges you find on the diagram and Carrot will provide you with the retry mechanism and will create the architecturev for you.
 
 ## License
 
