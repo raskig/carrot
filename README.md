@@ -26,7 +26,7 @@ No need to worry if the above diagram seems to be too complicated. The idea is t
 
 ## License
 
-Copyright © 2017 FIXME
+Copyright © 2017 Gabor Raski
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
