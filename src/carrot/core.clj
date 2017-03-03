@@ -68,7 +68,7 @@
         (lb/ack ch (:delivery-tag meta))))))
 
 
-(defn declare-system [channel waiting-exchange dead-letter-exchange waiting-queue message-exchange message-ttl exchange-type exchange-config]
+(defn declare-system [{:keys [channel waiting-exchange dead-letter-exchange waiting-queue message-exchange message-ttl exchange-type exchange-config]}]
   (le/declare channel waiting-exchange exchange-type exchange-config)
   (le/declare channel message-exchange exchange-type exchange-config)
   (le/declare channel dead-letter-exchange exchange-type exchange-config)
@@ -80,8 +80,8 @@
                                               "x-dead-letter-exchange" message-exchange}}))]
     (lq/bind channel waiting-queue-name waiting-exchange {:routing-key "#"})))
 
-(defn subscribe [dead-letter-exchange channel queue-name message-handler config]
-  (lc/subscribe channel queue-name message-handler config)
+(defn subscribe [{:keys [dead-letter-exchange channel queue-name]} message-handler queue-config]
+  (lc/subscribe channel queue-name message-handler queue-config)
   (lq/declare channel (str "dead-" queue-name) {:exclusive false :auto-delete false})
   (lq/bind channel (str "dead-" queue-name) dead-letter-exchange {:routing-key queue-name}))
 

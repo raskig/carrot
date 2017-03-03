@@ -27,19 +27,19 @@
         ch    (lch/open conn)
         qname "message-queue"]
     (println (format "[main] Connected. Channel id: %d" (.getChannelNumber ch)))
-    (carrot/declare-system ch
-                           "waiting-exchange"
-                           "dead-letter-exchange"
-                           "waiting-queue"
-                           "message-exchange"
-                           3000
-                           "topic"
-                           {:durable true})
+    (carrot/declare-system {:channel ch
+                            :waiting-exchange "waiting-exchange"
+                            :dead-letter-exchange "dead-letter-exchange"
+                            :waiting-queue "waiting-queue"
+                            :message-exchange "message-exchange"
+                            :message-ttl 3000
+                            :exchange-type "topic"
+                            :exchange-config {:durable true}})
     (lq/declare ch qname {:exclusive false :auto-delete false})
     (lq/bind ch qname "message-exchange" {:routing-key qname})
-    (carrot/subscribe "dead-letter-exchange"
-                      ch
-                      qname
+    (carrot/subscribe {:dead-letter-exchange "dead-letter-exchange"
+                       :channel ch
+                       :queue-name qname}
                       (carrot/crate-message-handler-function
                        (carrot/compose-payload-handler-function
                         message-handler)
@@ -49,7 +49,7 @@
                        "dead-letter-exchange"
                        logger)
                       {:auto-ack true})
-    (lb/publish ch default-exchange-name qname "Hellooooooooooooooooooooooooo!" {:content-type "text/plain" :type "greetings.hi"})
+    (lb/publish ch default-exchange-name qname "Hello World!" {:content-type "text/plain" :type "greetings.hi"})
     (Thread/sleep 20000)
     (println "[main] Disconnecting...")
     (rmq/close ch)
