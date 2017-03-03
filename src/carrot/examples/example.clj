@@ -21,32 +21,34 @@
 (defn logger [ & all]
   (log/info all))
 
+(def carrot-config {:waiting-exchange "waiting-exchange"
+                    :dead-letter-exchange "dead-letter-exchange"
+                    :waiting-queue "waiting-queue"
+                    :message-exchange "message-exchange"})
+
 (defn- main
   [& args]
   (let [conn  (rmq/connect)
         ch    (lch/open conn)
         qname "message-queue"]
     (println (format "[main] Connected. Channel id: %d" (.getChannelNumber ch)))
-    (carrot/declare-system {:channel ch
-                            :waiting-exchange "waiting-exchange"
-                            :dead-letter-exchange "dead-letter-exchange"
-                            :waiting-queue "waiting-queue"
-                            :message-exchange "message-exchange"
-                            :message-ttl 3000
-                            :exchange-type "topic"
-                            :exchange-config {:durable true}})
+    (carrot/declare-system ch
+                           carrot-config
+                           3000
+                           "topic"
+                           {:durable true})
+
     (lq/declare ch qname {:exclusive false :auto-delete false})
     (lq/bind ch qname "message-exchange" {:routing-key qname})
-    (carrot/subscribe {:dead-letter-exchange "dead-letter-exchange"
-                       :channel ch
-                       :queue-name qname}
+    (carrot/subscribe ch
+                      carrot-config
+                      qname
                       (carrot/crate-message-handler-function
                        (carrot/compose-payload-handler-function
                         message-handler)
                        qname
                        3
-                       "waiting-exchange"
-                       "dead-letter-exchange"
+                       carrot-config
                        logger)
                       {:auto-ack true})
     (lb/publish ch default-exchange-name qname "Hello World!" {:content-type "text/plain" :type "greetings.hi"})

@@ -68,7 +68,11 @@
         (lb/ack ch (:delivery-tag meta))))))
 
 
-(defn declare-system [{:keys [channel waiting-exchange dead-letter-exchange waiting-queue message-exchange message-ttl exchange-type exchange-config]}]
+(defn declare-system [channel
+                      {:keys [waiting-exchange dead-letter-exchange waiting-queue message-exchange]}
+                      message-ttl
+                      exchange-type
+                      exchange-config]
   (le/declare channel waiting-exchange exchange-type exchange-config)
   (le/declare channel message-exchange exchange-type exchange-config)
   (le/declare channel dead-letter-exchange exchange-type exchange-config)
@@ -80,15 +84,19 @@
                                               "x-dead-letter-exchange" message-exchange}}))]
     (lq/bind channel waiting-queue-name waiting-exchange {:routing-key "#"})))
 
-(defn subscribe [{:keys [dead-letter-exchange channel queue-name]} message-handler queue-config]
+(defn subscribe [channel
+                 {:keys [dead-letter-exchange]}
+                 queue-name
+                 message-handler
+                 queue-config]
   (lc/subscribe channel queue-name message-handler queue-config)
   (lq/declare channel (str "dead-" queue-name) {:exclusive false :auto-delete false})
   (lq/bind channel (str "dead-" queue-name) dead-letter-exchange {:routing-key queue-name}))
 
 (defn crate-message-handler-function
-  ([handler routing-key max-retry waiting-exchange dead-letter-exchange logger-fn]
+  ([handler routing-key max-retry {:keys [waiting-exchange dead-letter-exchange]} logger-fn]
    (partial message-handler handler routing-key max-retry waiting-exchange dead-letter-exchange logger-fn))
-  ([handler routing-key max-retry waiting-exchange dead-letter-exchange]
+  ([handler routing-key max-retry {:keys [waiting-exchange dead-letter-exchange]}]
    (crate-message-handler-function message-handler handler routing-key max-retry waiting-exchange dead-letter-exchange nil)))
 
 (defmacro compose-payload-handler-function
