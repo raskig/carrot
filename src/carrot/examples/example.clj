@@ -12,15 +12,18 @@
 (def ^{:const true}
   default-exchange-name "")
 
+;;your custom message handler with exception to test retry mechanism with
 (defn message-handler
   [{:keys [ch meta payload]}]
   (println (format "[consumer] Received a message: %s"
                    (String. payload "UTF-8")))
   (throw (Exception. "my exception for retry message")))
 
+;;ypurlogger function. It is optional
 (defn logger [ & all]
   (log/info all))
 
+;;define ypur exchange and queue names in a carrot config map:
 (def carrot-config {:waiting-exchange "waiting-exchange"
                     :dead-letter-exchange "dead-letter-exchange"
                     :waiting-queue "waiting-queue"
@@ -32,20 +35,27 @@
         ch    (lch/open conn)
         qname "message-queue"]
     (println (format "[main] Connected. Channel id: %d" (.getChannelNumber ch)))
+    ;;declare your carrot system
     (carrot/declare-system ch
                            carrot-config
                            3000
                            "topic"
                            {:durable true})
 
+    ;;declare your queue where you want to send your business messages:
     (lq/declare ch qname {:exclusive false :auto-delete false})
+    ;;bind your queue to your main message exchange. Use the same name you defined in carrot system config:
     (lq/bind ch qname "message-exchange" {:routing-key qname})
     (carrot/subscribe ch
                       carrot-config
                       qname
+                      ;;user carrot to create the message handler for langohr:
                       (carrot/crate-message-handler-function
                        (carrot/compose-payload-handler-function
-                        message-handler)
+                        message-handler
+                        ;;here you can en list more functions and they will be threaded in order via threading macro
+                        ;;and will compose a message handler function
+                        )
                        qname
                        3
                        carrot-config
