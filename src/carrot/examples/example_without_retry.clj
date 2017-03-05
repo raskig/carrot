@@ -14,13 +14,13 @@
 
 ;;your custom message handler with exception to test retry mechanism with
 (defn message-handler-01
-  [{:keys [ch meta payload]}]
+  [{:keys [ch meta payload], :as carrot-map}]
   (println (format "[consumer] Received a message: %s"
                    (String. payload "UTF-8")))
-  payload)
+  carrot-map)
 
 (defn message-handler-02
-  [{:keys [ch meta payload]}]
+  [{:keys [ch meta payload], :as carrot-map}]
   (println (format "[consumer] Received a message: %s"
                    (String. payload "UTF-8")))
   (throw (Exception. "my exception for retry message")))

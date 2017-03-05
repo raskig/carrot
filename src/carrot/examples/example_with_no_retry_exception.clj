@@ -14,24 +14,24 @@
 
 ;;your custom message handler with exception to test retry mechanism with
 (defn message-handler-01
-  [{ch :ch meta :meta payload :payload :as carrot-map}]
+  [{:keys [ch meta payload], :as carrot-map}]
   (println (format "[consumer] Received a message part 1: %s"
                    (String. payload "UTF-8")))
   carrot-map)
 
 (defn message-handler-02
-  [{ch :ch meta :meta payload :payload :as carrot-map}]
+  [{:keys [ch meta payload], :as carrot-map}]
   (println (format "[consumer] Received a message part 2: %s"
                    payload "U"))
   (carrot/throw-do-not-retry-exception "Something fatal happaned." {:cause "The message can not be processed."})
   carrot-map)
 
 
-;;ypurlogger function. It is optional
+;;yourlogger function. It is optional
 (defn logger [ & all]
   (log/info all))
 
-;;define ypur exchange and queue names in a carrot config map:
+;;define your exchange and queue names in a carrot config map:
 (def carrot-config {:waiting-exchange "waiting-exchange"
                     :dead-letter-exchange "dead-letter-exchange"
                     :waiting-queue "waiting-queue"
