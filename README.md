@@ -38,12 +38,12 @@ No need to worry if the above diagram seems to be too complicated. The idea is t
 
 Main steps:
 
-- require carrot in your code:
+- Require carrot in your code:
 
 ```clojure
 :require [carrot.core :as carrot]
 ```
-- define your exchange and queue names in a carrot config map (for details see [architecture](https://cloud.githubusercontent.com/assets/3204818/23512162/99eec068-ff57-11e6-9176-a883f79a9e22.png)):
+- Define your exchange and queue names in a carrot config map (for details see [architecture](https://cloud.githubusercontent.com/assets/3204818/23512162/99eec068-ff57-11e6-9176-a883f79a9e22.png)):
 
 ```clojure
 (def carrot-config {:waiting-exchange "waiting-exchange"
@@ -62,7 +62,7 @@ Main steps:
                            )
  ```
 
-- you subscribe for your message queues by using carrot subscribe function:
+- You subscribe for your message queues by using carrot subscribe function:
 ```clojure
 (carrot/subscribe ch
                       carrot-config
@@ -83,15 +83,20 @@ Main steps:
                       {:auto-ack false};;do not auto acknoledge carrot will do it for you  
                       )
 ```
-- declare finctions you don't accept exceptions for retrying. Bacically you enlist functions here where any exception means the message can't ever be processed, so no reason for retrial
+[Full example code](src/carrot/examples/example.clj)
+
+
+
+- Opytionally you  can declare functions you don't accept exceptions for retrying. Bacically you enlist functions here where any exception means the message can't ever be processed, so no reason for retrial
 
 ```clojure
 (carrot/do-not-retry! [#'my-namespace/message-handler-02
                 #'my-namespace/message-handler-04])
 
 ```
+[Example code for this](src/carrot/examples/example-without-retry.clj)
 
-[Full example code](src/carrot/examples/example.clj)
+
 
 ## License
 
