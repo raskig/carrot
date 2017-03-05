@@ -102,6 +102,9 @@ Main steps:
 ```
 [Example code for this](src/carrot/examples/example_without_retry.clj)
 
+## TODOS
+- tests tests and tests
+- support strategy for exponential backoff
 
 ## License
 
