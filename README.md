@@ -80,7 +80,8 @@ Main steps:
                        3
                        carrot-config
                        logger)
-                      {:auto-ack true})
+                      {:auto-ack false};;do not auto acknoledge carrot will do it for you  
+                      )
 ```
 - declare finctions you don't accept exceptions for retrying. Bacically you enlist functions here where any exception means the message can't ever be processed, so no reason for retrial
 
