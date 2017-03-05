@@ -36,7 +36,7 @@ The idea is the following:
 
 No need to worry if the above diagram seems to be too complicated. The idea is that you give custom names to the queues and exchanges you find on the diagram and Carrot will provide you with the retry mechanism and will create the architecturev for you.
 Example:
-[/blob/master/src/carrot/examples/](example.clj)
+[./src/carrot/examples/](example.clj)
 
 ## License
 
