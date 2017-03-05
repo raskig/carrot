@@ -86,6 +86,12 @@ Main steps:
 [Full example code](src/carrot/examples/example.clj)
 
 ## Exception handling
+- You  can throw exceptions for not retrying. If you throw this exception it indicates that carrot should not retry the message because the message can't ever be processed, so no reason for retrial.
+
+```clojure
+(carrot/throw-do-not-retry-exception "Something fatal happaned." {:cause "The message can not be processed."})
+```
+[Example code for this](src/carrot/examples/example_with_no_retry_exception.clj)
 
 - Optionally you  can declare functions you don't accept exceptions from, for retrying. Bacically you enlist functions here where any exception means the message can't ever be processed, so no reason for retrial.
 
@@ -96,13 +102,6 @@ Main steps:
 ```
 [Example code for this](src/carrot/examples/example_without_retry.clj)
 
-
-- You  can throw exceptions for not retrying. If you throw this exception it indicates that carrot should not retry the message because the message can't ever be processed, so no reason for retrial.
-
-```clojure
-(carrot/throw-do-not-retry-exception "Something fatal happaned." {:cause "The message can not be processed."})
-```
-[Example code for this](src/carrot/examples/example_with_no_retry_exception.clj)
 
 ## License
 
