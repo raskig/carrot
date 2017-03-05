@@ -82,7 +82,7 @@ Main steps:
                        logger)
                       {:auto-ack true})
 ```
-- declare finctions you don't accept exceptions for retrying. Bacically you enlist functions here where any exception means the message can't ever be processed, so no reason for retrieal
+- declare finctions you don't accept exceptions for retrying. Bacically you enlist functions here where any exception means the message can't ever be processed, so no reason for retrial
 
 ```clojure
 (carrot/do-not-retry! [#'my-namespace/message-handler-02
