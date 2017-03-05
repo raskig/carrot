@@ -35,7 +35,62 @@ The idea is the following:
 ## Usage
 
 No need to worry if the above diagram seems to be too complicated. The idea is that you give custom names to the queues and exchanges you find on the diagram and Carrot will provide you with the retry mechanism and will create the architecturev for you.
-[Example code](src/carrot/examples/example.clj)
+
+Main steps:
+
+- require carrot in your code:
+
+```clojure
+:require [carrot.core :as carrot]
+```
+- define your exchange and queue names in a carrot config map (for details see [architecture](https://cloud.githubusercontent.com/assets/3204818/23512162/99eec068-ff57-11e6-9176-a883f79a9e22.png)):
+
+```clojure
+(def carrot-config {:waiting-exchange "waiting-exchange"
+                    :dead-letter-exchange "dead-letter-exchange"
+                    :waiting-queue "waiting-queue"
+                    :message-exchange "message-exchange"})
+```
+
+- Declare your carrot system which will declare exchanges and queues with the given configuration:
+```clojure
+ (carrot/declare-system ch
+                           carrot-config
+                           3000;;ttl spent in waiting queue (in milliseconds)
+                           "topic";;type for the exchanges
+                           {:durable true};;config for the exchanges
+                           )
+ ```
+
+- you subscribe for your message queues by using carrot subscribe function:
+```clojure
+(carrot/subscribe ch
+                      carrot-config
+                      qname
+                      ;;use carrot to create the message handler for langohr:
+                      (carrot/crate-message-handler-function
+                       (carrot/compose-payload-handler-function
+                        message-handler-01
+                        message-handler-02
+                        message-handler-03
+                        ;;here you can en list more functions and they will be threaded in order via threading macro
+                        ;;and will compose a message handler function
+                        )
+                       qname
+                       3
+                       carrot-config
+                       logger)
+                      {:auto-ack true})
+```
+- declare finctions you don't accept exceptions for retrying. Bacically you enlist functions here where any exception means the message can't ever be processed, so no reason for retrieal
+
+```clojure
+(carrot/do-not-retry! [#'my-namespace/message-handler-02
+                #'my-namespace/message-handler-04])
+
+```
+
+[Full xample code](src/carrot/examples/example.clj)
 
 ## License
 
