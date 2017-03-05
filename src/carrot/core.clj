@@ -38,6 +38,10 @@
   [fn-coll]
   (doall (map #(throw-with-extra! % {:reject? true}) fn-coll)))
 
+(defn throw-do-not-retry-exception [msg meta]
+  (throw (ex-info msg
+                  (assoc meta :reject? true ))))
+
 
 (defn- nack [ch message meta routing-key retry-attempts max-retry waiting-exchange dead-letter-exchange logger-fn]
   (let [retry-attempts (int retry-attempts)
