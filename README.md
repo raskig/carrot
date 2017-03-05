@@ -90,7 +90,7 @@ Main steps:
 
 ```
 
-[Full xample code](src/carrot/examples/example.clj)
+[Full example code](src/carrot/examples/example.clj)
 
 ## License
 
