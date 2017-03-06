@@ -13,8 +13,13 @@
   default-exchange-name "")
 
 ;;your custom message handler with exception to test retry mechanism with
-(defn message-handler
+(defn message-handler-01
   [{:keys [ch meta payload]}]
+  (println (format "[consumer] Received a message: %s"
+                   (String. payload "UTF-8"))))
+
+(defn message-handler-02
+  [{:keys [ch meta payload], :as carrot-map}]
   (println (format "[consumer] Received a message: %s"
                    (String. payload "UTF-8")))
   (throw (Exception. "my exception for retry message")))
@@ -28,6 +33,8 @@
                     :dead-letter-exchange "dead-letter-exchange"
                     :waiting-queue "waiting-queue"
                     :message-exchange "message-exchange"})
+
+
 
 (defn- main
   [& args]
@@ -51,8 +58,9 @@
                       qname
                       ;;user carrot to create the message handler for langohr:
                       (carrot/crate-message-handler-function
-                       (carrot/compose-payload-handler-function
-                        message-handler
+                       (comp
+                        message-handler-01
+                        message-handler-02
                         ;;here you can en list more functions and they will be threaded in order via threading macro
                         ;;and will compose a message handler function
                         )

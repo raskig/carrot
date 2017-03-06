@@ -59,13 +59,9 @@
                       qname
                       ;;user carrot to create the message handler for langohr:
                       (carrot/crate-message-handler-function
-                       (carrot/compose-payload-handler-function
+                       (comp
                         message-handler-01
-                        message-handler-02
-                        ;;here you can en list more functions and they will be
-                        ;;threaded in order via threading macro
-                        ;;and will compose a message handler function
-                        )
+                        message-handler-02)
                        qname
                        3
                        carrot-config
