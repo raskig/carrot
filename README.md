@@ -105,6 +105,7 @@ Main steps:
 ## TODOS
 - tests tests and tests
 - support strategy for exponential backoff
+- support function for replaying messages ended up in dead letter queue
 
 ## License
 
