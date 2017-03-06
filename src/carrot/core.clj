@@ -102,3 +102,9 @@
    (partial message-handler handler routing-key max-retry waiting-exchange dead-letter-exchange logger-fn))
   ([handler routing-key max-retry {:keys [waiting-exchange dead-letter-exchange]}]
    (crate-message-handler-function message-handler handler routing-key max-retry waiting-exchange dead-letter-exchange nil)))
+
+(defmacro compose-payload-handler-function
+  [& args]
+  (list 'fn ['payload]
+          (concat (list '-> 'payload)
+                args)))
