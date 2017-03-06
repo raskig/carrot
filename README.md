@@ -24,13 +24,13 @@ The idea is the following:
 
 * I publish releases to [Clojars]
 
-* Latest release is [carrot "0.1.2"]
+* Latest release is [carrot "0.1.3"]
 
 * [All releases]
 
 [Leiningen] dependency information:
 
-   [carrot "0.1.2"]
+   [carrot "0.1.3"]
 
 ## Usage
 
@@ -69,7 +69,7 @@ Main steps:
                       qname
                       ;;use carrot to create the message handler for langohr:
                       (carrot/crate-message-handler-function
-                       (carrot/compose-payload-handler-function
+                       (comp
                         message-handler-01
                         message-handler-02
                         message-handler-03
@@ -106,6 +106,7 @@ Main steps:
 - tests tests and tests
 - support strategy for exponential backoff
 - support function for replaying messages ended up in dead letter queue
+- possibly: provide a function to hanldle dead letters and one strategy could be to put them in dead letter queues
 
 ## License
 
