@@ -35,7 +35,6 @@
                     :message-exchange "message-exchange"})
 
 (defn dead-queue-config-function [queue-name]
-  (logger "Helloooooo")
   {:arguments {"x-max-length" 1000}})
 
 
