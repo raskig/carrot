@@ -82,7 +82,6 @@
     exchange-type
     exchange-config
     waiting-queue-config]
-   (println "waiting-queue-config: " waiting-queue-config)
    (le/declare channel waiting-exchange exchange-type exchange-config)
    (le/declare channel message-exchange exchange-type exchange-config)
    (le/declare channel dead-letter-exchange exchange-type exchange-config)

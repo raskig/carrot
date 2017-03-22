@@ -1,4 +1,4 @@
-(defproject carrot "0.1.6"
+(defproject carrot "0.1.7"
   :description "A Clojure library designed to providing the implementation of  RabbitMq delayed retry mechanism."
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
