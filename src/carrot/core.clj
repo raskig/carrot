@@ -75,30 +75,61 @@
         (lb/ack ch (:delivery-tag meta))))))
 
 
-(defn declare-system [channel
-                      {:keys [waiting-exchange dead-letter-exchange waiting-queue message-exchange]}
-                      message-ttl
-                      exchange-type
-                      exchange-config]
-  (le/declare channel waiting-exchange exchange-type exchange-config)
-  (le/declare channel message-exchange exchange-type exchange-config)
-  (le/declare channel dead-letter-exchange exchange-type exchange-config)
-  (let [waiting-queue-name (:queue (lq/declare channel waiting-queue
-                                 {:exlusive false
-                                  :auto-delete true
-                                  :durable true
-                                  :arguments {"x-message-ttl" message-ttl
-                                              "x-dead-letter-exchange" message-exchange}}))]
-    (lq/bind channel waiting-queue-name waiting-exchange {:routing-key "#"})))
+(defn declare-system
+  ([channel
+    {:keys [waiting-exchange dead-letter-exchange waiting-queue message-exchange]}
+    message-ttl
+    exchange-type
+    exchange-config
+    waiting-queue-config]
+   (println "waiting-queue-config: " waiting-queue-config)
+   (le/declare channel waiting-exchange exchange-type exchange-config)
+   (le/declare channel message-exchange exchange-type exchange-config)
+   (le/declare channel dead-letter-exchange exchange-type exchange-config)
+   (let [waiting-queue-name (:queue (lq/declare channel waiting-queue
+                                                                   (merge-with merge waiting-queue-config
+                                                                                 {:exlusive false
+                                                                                  :auto-delete true
+                                                                                  :durable true
+                                                                                  :arguments {"x-message-ttl" message-ttl
+                                                                                              "x-dead-letter-exchange" message-exchange}})))]
+     (lq/bind channel waiting-queue-name waiting-exchange {:routing-key "#"})))
+  ([channel
+    carrot-system
+    message-ttl
+    exchange-type
+    exchange-config]
+   (declare-system channel
+                   carrot-system
+                   message-ttl
+                   exchange-type
+                   exchange-config
+                   {})))
 
-(defn subscribe [channel
-                 {:keys [dead-letter-exchange]}
-                 queue-name
-                 message-handler
-                 queue-config]
-  (lc/subscribe channel queue-name message-handler queue-config)
-  (lq/declare channel (str "dead-" queue-name) {:exclusive false :auto-delete false})
-  (lq/bind channel (str "dead-" queue-name) dead-letter-exchange {:routing-key queue-name}))
+
+(defn subscribe
+  ([channel
+    {:keys [dead-letter-exchange]}
+    queue-name
+    message-handler
+    queue-config
+    dead-queue-config-function]
+   (lc/subscribe channel queue-name message-handler queue-config)
+   (lq/declare channel (str "dead-" queue-name)
+               (merge-with merge (dead-queue-config-function queue-name)
+                      {:exclusive false :auto-delete false}))
+   (lq/bind channel (str "dead-" queue-name) dead-letter-exchange {:routing-key queue-name}))
+  ([channel
+    carrot-config
+    queue-name
+    message-handler
+    queue-config]
+   (subscribe channel
+              carrot-config
+              queue-name
+              message-handler
+              queue-config
+              {})))
 
 (defn crate-message-handler-function
   ([handler routing-key max-retry {:keys [waiting-exchange dead-letter-exchange]} logger-fn]

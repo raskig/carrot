@@ -34,6 +34,10 @@
                     :waiting-queue "waiting-queue"
                     :message-exchange "message-exchange"})
 
+(defn dead-queue-config-function [queue-name]
+  (logger "Helloooooo")
+  {:arguments {"x-max-length" 1000}})
+
 
 
 (defn- main
@@ -47,7 +51,8 @@
                            carrot-config
                            3000
                            "topic"
-                           {:durable true})
+                           {:durable true}
+                           {:arguments {"x-max-length" 1000}})
 
     ;;declare your queue where you want to send your business messages:
     (lq/declare ch qname {:exclusive false :auto-delete false})
@@ -68,8 +73,9 @@
                        3
                        carrot-config
                        logger)
-                      {:auto-ack false})
-    (lb/publish ch default-exchange-name qname "Hello World!" {:content-type "text/plain" :type "greetings.hi"})
+                      {:auto-ack false}
+                      dead-queue-config-function)
+    (lb/publish ch default-exchange-name qname "Hello World!" {:content-type "text/plain" :type "greetings.hi" :message-id (str (java.util.UUID/randomUUID))})
     (Thread/sleep 20000)
     (println "[main] Disconnecting...")
     (rmq/close ch)
