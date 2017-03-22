@@ -52,8 +52,10 @@
                 exchange
                 routing-key
                 message
-                {:persistent true
-                 :headers {"retry-attempts" (inc retry-attempts)}}))
+                (merge
+                 meta
+                 {:persistent true
+                  :headers {"retry-attempts" (inc retry-attempts)}})))
   (lb/ack ch (:delivery-tag meta)))
 
 (defn- message-handler [message-handler routing-key max-retry waiting-exchange dead-letter-exchange logger-fn ch meta ^bytes payload]
