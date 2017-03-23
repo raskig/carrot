@@ -30,7 +30,7 @@ The idea is the following:
 
 [Leiningen] dependency information:
 
-   [carrot "0.1.6"]
+   [carrot "0.1.7"]
 
 ## Usage
 
