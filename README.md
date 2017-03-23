@@ -24,7 +24,7 @@ The idea is the following:
 
 * I publish releases to [Clojars]
 
-* Latest release is [carrot "0.1.6"]
+* Latest release is [carrot "0.1.7"]
 
 * [All releases]
 
