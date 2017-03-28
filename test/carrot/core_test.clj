@@ -145,7 +145,7 @@
                           :message-exchange "message-exchange"})
       (carrot/declare-system channel
                            carrot-config
-                           0;;no ttl set!!!
+                           "N/A";;no ttl set!!!
                            "topic"
                            {:durable true}
                            {:arguments {"x-max-length" 1000}})
