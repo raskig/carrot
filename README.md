@@ -102,9 +102,19 @@ Main steps:
 ```
 [Example code for this](src/carrot/examples/example_without_retry.clj)
 
+## Exponencial backoff
+- You can configure carrot to run with exponencial backoff. 
+- For this feature you pass the "retry-config map" instead of the max retry parameter. This looks like for example:
+```clojure
+{:initial-ttl 30 :max-retry-count 3}
+```
+- This means in case the message processing fails, first it waits 30 miliseconds than if it fails again it will wait (30 * 30) miliseconds than (30 * 30 * 30). And it will still retry processing the message 3 times.
+- DONT Forget: in this usecase you have to set the message-ttl when you create the carrot-system to 0 or "N/A"
+
+
+
+
 ## TODOS
-- tests tests and tests
-- support strategy for exponential backoff
 - support function for replaying messages ended up in dead letter queue
 - possibly: provide a function to hanldle dead letters and one strategy could be to put them in dead letter queues
 
