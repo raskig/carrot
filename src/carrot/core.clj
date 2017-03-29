@@ -43,14 +43,39 @@
                   (assoc meta :reject? true ))))
 
 
-(defn- nack [ch message meta routing-key retry-attempts retry-config waiting-exchange dead-letter-exchange logger-fn]
+(defn- exp-nack [ch message meta routing-key retry-attempts retry-config waiting-exchange dead-letter-exchange message-exchange logger-fn]
   (let [retry-attempts (int retry-attempts)
-        exponential-backoff? (:max-retry-count retry-config)
-        max-retry (if exponential-backoff? (:max-retry-count retry-config) retry-config)
+        max-retry (:max-retry-count retry-config)
         exchange (if (> max-retry retry-attempts) waiting-exchange dead-letter-exchange)
-        exp-backoff-config (if exponential-backoff?
-                             {:expiration (str (.pow (BigInteger. (str (:initial-ttl retry-config))) (int (+ 1 retry-attempts))))}
-                             {})]
+        calculated-ttl (int (+ 300 (.pow (BigInteger. (str (:initial-ttl retry-config))) (int (+ 1 retry-attempts)))))
+        exp-waiting-queue-name (str "waiting-" routing-key "-"  (str calculated-ttl))]
+    (when logger-fn (logger-fn "LOGME ns=carrot.core name=current-retry-attempt message:" (:message-id meta) retry-attempts))
+    (when logger-fn (logger-fn "Sending message " (:message-id meta)  " to the exchange: " exchange))
+    (lq/declare ch exp-waiting-queue-name
+                {:exlusive false
+                 :auto-delete false
+                 :durable true
+                 :arguments {"x-message-ttl" calculated-ttl
+                             "x-expires" (* 100 calculated-ttl)
+                             "x-dead-letter-exchange" message-exchange
+                             "x-dead-letter-routing-key" routing-key
+                             }})
+    (lq/bind ch exp-waiting-queue-name waiting-exchange {:routing-key exp-waiting-queue-name})
+    (println "publishing****************************** TO: " (if (= exchange dead-letter-exchange) routing-key exp-waiting-queue-name))
+    (lb/publish ch
+                exchange
+                (if (= exchange dead-letter-exchange) routing-key exp-waiting-queue-name)
+                message
+                (merge
+                 meta
+                 {:persistent true
+                  :headers {"retry-attempts" (inc retry-attempts)}})))
+  (lb/ack ch (:delivery-tag meta)))
+
+
+(defn- plain-nack [ch message meta routing-key retry-attempts max-retry waiting-exchange dead-letter-exchange message-exchange logger-fn]
+  (let [retry-attempts (int retry-attempts)
+        exchange (if (> max-retry retry-attempts) waiting-exchange dead-letter-exchange)]
     (when logger-fn (logger-fn "LOGME ns=carrot.core name=current-retry-attempt message:" (:message-id meta) retry-attempts))
     (when logger-fn (logger-fn "Sending message " (:message-id meta)  " to the exchange: " exchange))
     (lb/publish ch
@@ -59,12 +84,21 @@
                 message
                 (merge
                  meta
-                 exp-backoff-config
                  {:persistent true
                   :headers {"retry-attempts" (inc retry-attempts)}})))
   (lb/ack ch (:delivery-tag meta)))
 
-(defn- message-handler [message-handler routing-key retry-config waiting-exchange dead-letter-exchange logger-fn ch meta ^bytes payload]
+
+
+(defn- nack [ch message meta routing-key retry-attempts retry-config waiting-exchange dead-letter-exchange message-exchange logger-fn]
+  (if (:max-retry-count retry-config)
+    (exp-nack ch message meta routing-key retry-attempts retry-config waiting-exchange dead-letter-exchange message-exchange logger-fn)
+    (plain-nack ch message meta routing-key retry-attempts retry-config waiting-exchange dead-letter-exchange message-exchange logger-fn)))
+
+
+
+
+(defn- message-handler [message-handler routing-key retry-config waiting-exchange dead-letter-exchange message-exchange logger-fn ch meta ^bytes payload]
   (try
     (let [carrot-map {:channel ch
                       :meta meta
@@ -77,7 +111,7 @@
       (when logger-fn
         (logger-fn "LOGME ns=carrot.core name=message-process-error message-id="(:message-id meta) "error="e " exception="(clojure.stacktrace/print-stack-trace e)))
       (if (retry-exception? e logger-fn)
-        (nack ch payload meta routing-key (or (get (:headers meta) "retry-attempts") 0) retry-config waiting-exchange dead-letter-exchange logger-fn)
+        (nack ch payload meta routing-key (or (get (:headers meta) "retry-attempts") 0) retry-config waiting-exchange dead-letter-exchange message-exchange logger-fn)
         (lb/ack ch (:delivery-tag meta))))))
 
 
@@ -99,9 +133,9 @@
                                                             {:exlusive false
                                                              :auto-delete true
                                                              :durable true
-                                                             :arguments {
-                                                                         "x-dead-letter-exchange" message-exchange}})))]
-     (lq/bind channel waiting-queue-name waiting-exchange {:routing-key "#"})))
+                                                             :arguments {"x-dead-letter-exchange" message-exchange}})))]
+     ;;(lq/bind channel waiting-queue-name waiting-exchange {:routing-key "#"})
+     ))
   ([channel
     carrot-system
     message-ttl
@@ -149,10 +183,10 @@
               {})))
 
 (defn crate-message-handler-function
-  ([handler routing-key retry-config {:keys [waiting-exchange dead-letter-exchange]} logger-fn]
-   (partial message-handler handler routing-key retry-config waiting-exchange dead-letter-exchange logger-fn))
-  ([handler routing-key retry-config {:keys [waiting-exchange dead-letter-exchange]}]
-   (crate-message-handler-function message-handler handler routing-key retry-config waiting-exchange dead-letter-exchange nil)))
+  ([handler routing-key retry-config {:keys [waiting-exchange dead-letter-exchange message-exchange]} logger-fn]
+   (partial message-handler handler routing-key retry-config waiting-exchange dead-letter-exchange message-exchange logger-fn))
+  ([handler routing-key retry-config {:keys [waiting-exchange dead-letter-exchange message-exchange]}]
+   (crate-message-handler-function message-handler handler routing-key retry-config waiting-exchange message-exchange dead-letter-exchange nil)))
 
 (defmacro compose-payload-handler-function
   [& args]
