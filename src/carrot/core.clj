@@ -114,28 +114,67 @@
         (nack ch payload meta routing-key (or (get (:headers meta) "retry-attempts") 0) retry-config waiting-exchange dead-letter-exchange message-exchange logger-fn)
         (lb/ack ch (:delivery-tag meta))))))
 
+(defn declare-normal-system [channel
+                             {:keys [waiting-exchange dead-letter-exchange waiting-queue message-exchange]}
+                             message-ttl
+                             exchange-type
+                             exchange-config
+                             waiting-queue-config]
+  (le/declare channel waiting-exchange exchange-type exchange-config)
+  (le/declare channel message-exchange exchange-type exchange-config)
+  (le/declare channel dead-letter-exchange exchange-type exchange-config)
+  (let [message-ttl-config (if (not  (or (= message-ttl 0) (= message-ttl "N/A")))  {:arguments {"x-message-ttl" message-ttl}} {})
+        waiting-queue-name (:queue (lq/declare channel waiting-queue
+                                               (merge-with merge
+                                                           waiting-queue-config
+                                                           message-ttl-config
+                                                           {:exlusive false
+                                                            :auto-delete true
+                                                          :durable true
+                                                            :arguments {"x-dead-letter-exchange" message-exchange}})))]
+    (lq/bind channel waiting-queue-name waiting-exchange {:routing-key "#"})))
+
+
+(defn declare-exp-backoff-system [channel
+                             {:keys [waiting-exchange dead-letter-exchange waiting-queue message-exchange]}
+                             message-ttl
+                             exchange-type
+                             exchange-config
+                             waiting-queue-config]
+  (le/declare channel waiting-exchange exchange-type exchange-config)
+  (le/declare channel message-exchange exchange-type exchange-config)
+  (le/declare channel dead-letter-exchange exchange-type exchange-config)
+  (let [message-ttl-config (if (not  (or (= message-ttl 0) (= message-ttl "N/A")))  {:arguments {"x-message-ttl" message-ttl}} {})
+        waiting-queue-name (:queue (lq/declare channel waiting-queue
+                                               (merge-with merge
+                                                           waiting-queue-config
+                                                           message-ttl-config
+                                                           {:exlusive false
+                                                            :auto-delete true
+                                                          :durable true
+                                                            :arguments {"x-dead-letter-exchange" message-exchange}})))]))
+
 
 (defn declare-system
   ([channel
-    {:keys [waiting-exchange dead-letter-exchange waiting-queue message-exchange]}
+    carrot-system
     message-ttl
     exchange-type
     exchange-config
     waiting-queue-config]
-   (le/declare channel waiting-exchange exchange-type exchange-config)
-   (le/declare channel message-exchange exchange-type exchange-config)
-   (le/declare channel dead-letter-exchange exchange-type exchange-config)
-   (let [message-ttl-config (if (not  (or (= message-ttl 0) (= message-ttl "N/A")))  {:arguments {"x-message-ttl" message-ttl}} {})
-         waiting-queue-name (:queue (lq/declare channel waiting-queue
-                                                (merge-with merge
-                                                            waiting-queue-config
-                                                            message-ttl-config
-                                                            {:exlusive false
-                                                             :auto-delete true
-                                                             :durable true
-                                                             :arguments {"x-dead-letter-exchange" message-exchange}})))]
-     ;;(lq/bind channel waiting-queue-name waiting-exchange {:routing-key "#"})
-     ))
+   (case (get-in carrot-system [:retry-config :strategy])
+     :simple-backoff (declare-normal-system channel
+                                carrot-system
+                                message-ttl
+                                exchange-type
+                                exchange-config
+                                waiting-queue-config)
+     :exp-backoff (declare-exp-backoff-system channel
+                                         carrot-system
+                                         message-ttl
+                                         exchange-type
+                                         exchange-config
+                                         waiting-queue-config)))
   ([channel
     carrot-system
     message-ttl
