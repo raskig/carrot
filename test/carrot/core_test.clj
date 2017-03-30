@@ -83,10 +83,6 @@
 
 
 
-
-
-
-
 (deftest test-expo-retry-with-carrot
   (with-open [conn (lhc/connect)
               channel (lch/open conn)]

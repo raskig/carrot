@@ -3,7 +3,9 @@
             [langohr.basic :as lb]
             [langohr.queue :as lq]
             [langohr.exchange :as le]
-            [langohr.consumers :as lc]))
+            [langohr.consumers :as lc]
+            [carrot.exp-backoff :as exp-backoff]
+            [carrot.delayed-retry :as delayed-retry]))
 
 (defn- retry-exception?
   "returns true if the exception has to be retried, false otherwise"
@@ -43,57 +45,12 @@
                   (assoc meta :reject? true ))))
 
 
-(defn- exp-nack [ch message meta routing-key retry-attempts {:keys [waiting-exchange dead-letter-exchange message-exchange retry-config]} logger-fn]
-  (let [retry-attempts (int retry-attempts)
-        max-retry (:max-retry-count retry-config)
-        exchange (if (> max-retry retry-attempts) waiting-exchange dead-letter-exchange)
-        calculated-ttl (int (+ 300 (.pow (BigInteger. (str (:initial-ttl retry-config))) (int (+ 1 retry-attempts)))))
-        exp-waiting-queue-name (str "waiting-" routing-key "-"  (str calculated-ttl))]
-    (when logger-fn (logger-fn "LOGME ns=carrot.core name=current-retry-attempt message:" (:message-id meta) retry-attempts))
-    (when logger-fn (logger-fn "Sending message " (:message-id meta)  " to the exchange: " exchange))
-    (lq/declare ch exp-waiting-queue-name
-                {:exlusive false
-                 :auto-delete false
-                 :durable true
-                 :arguments {"x-message-ttl" calculated-ttl
-                             "x-expires" (* 100 calculated-ttl)
-                             "x-dead-letter-exchange" message-exchange
-                             "x-dead-letter-routing-key" routing-key
-                             }})
-    (lq/bind ch exp-waiting-queue-name waiting-exchange {:routing-key exp-waiting-queue-name})
-    (lb/publish ch
-                exchange
-                (if (= exchange dead-letter-exchange) routing-key exp-waiting-queue-name)
-                message
-                (merge
-                 meta
-                 {:persistent true
-                  :headers {"retry-attempts" (inc retry-attempts)}})))
-  (lb/ack ch (:delivery-tag meta)))
-
-
-(defn- plain-nack [ch message meta routing-key retry-attempts {:keys [waiting-exchange dead-letter-exchange message-exchange retry-config]} logger-fn]
-  (let [max-retry (:max-retry-count retry-config)
-        retry-attempts (int retry-attempts)
-        exchange (if (> max-retry retry-attempts) waiting-exchange dead-letter-exchange)]
-    (when logger-fn (logger-fn "LOGME ns=carrot.core name=current-retry-attempt message:" (:message-id meta) retry-attempts))
-    (when logger-fn (logger-fn "Sending message " (:message-id meta)  " to the exchange: " exchange))
-    (lb/publish ch
-                exchange
-                routing-key
-                message
-                (merge
-                 meta
-                 {:persistent true
-                  :headers {"retry-attempts" (inc retry-attempts)}})))
-  (lb/ack ch (:delivery-tag meta)))
-
 
 
 (defn- nack [ch message meta routing-key retry-attempts carrot-system logger-fn]
   (if (= :exp-backoff (get-in carrot-system [:retry-config :strategy]))
-    (exp-nack ch message meta routing-key retry-attempts carrot-system logger-fn)
-    (plain-nack ch message meta routing-key retry-attempts carrot-system logger-fn)))
+    (exp-backoff/nack ch message meta routing-key retry-attempts carrot-system logger-fn)
+    (delayed-retry/nack ch message meta routing-key retry-attempts carrot-system logger-fn)))
 
 
 
@@ -122,40 +79,10 @@
    (crate-message-handler-function message-handler handler routing-key carrot-system nil)))
 
 
-(defn declare-normal-system [channel
-                             {:keys [waiting-exchange dead-letter-exchange waiting-queue message-exchange retry-config]}
-                             exchange-type
-                             exchange-config
-                             waiting-queue-config]
-  (le/declare channel waiting-exchange exchange-type exchange-config)
-  (le/declare channel message-exchange exchange-type exchange-config)
-  (le/declare channel dead-letter-exchange exchange-type exchange-config)
-  (let [waiting-queue-name (:queue (lq/declare channel waiting-queue
-                                               (merge-with merge
-                                                           waiting-queue-config
-                                                           {:exlusive false
-                                                            :auto-delete true
-                                                            :durable true
-                                                            :arguments {"x-message-ttl" (:message-ttl retry-config)
-                                                                        "x-dead-letter-exchange" message-exchange}})))]
-    (lq/bind channel waiting-queue-name waiting-exchange {:routing-key "#"})))
 
 
-(defn declare-exp-backoff-system [channel
-                             {:keys [waiting-exchange dead-letter-exchange waiting-queue message-exchange]}
-                             exchange-type
-                             exchange-config
-                                  waiting-queue-config]
-  (le/declare channel waiting-exchange exchange-type exchange-config)
-  (le/declare channel message-exchange exchange-type exchange-config)
-  (le/declare channel dead-letter-exchange exchange-type exchange-config)
-  (let [waiting-queue-name (:queue (lq/declare channel waiting-queue
-                                               (merge-with merge
-                                                           waiting-queue-config
-                                                           {:exlusive false
-                                                            :auto-delete true
-                                                          :durable true
-                                                            :arguments {"x-dead-letter-exchange" message-exchange}})))]))
+
+
 
 
 (defn declare-system
@@ -165,12 +92,12 @@
     exchange-config
     waiting-queue-config]
    (case (get-in carrot-system [:retry-config :strategy])
-     :simple-backoff (declare-normal-system channel
+     :simple-backoff (delayed-retry/declare-system channel
                                 carrot-system
                                 exchange-type
                                 exchange-config
                                 waiting-queue-config)
-     :exp-backoff (declare-exp-backoff-system channel
+     :exp-backoff (exp-backoff/declare-system channel
                                          carrot-system
                                          exchange-type
                                          exchange-config
