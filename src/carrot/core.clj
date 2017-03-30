@@ -43,7 +43,7 @@
                   (assoc meta :reject? true ))))
 
 
-(defn- exp-nack [ch message meta routing-key retry-attempts retry-config waiting-exchange dead-letter-exchange message-exchange logger-fn]
+(defn- exp-nack [ch message meta routing-key retry-attempts {:keys [waiting-exchange dead-letter-exchange message-exchange retry-config]} logger-fn]
   (let [retry-attempts (int retry-attempts)
         max-retry (:max-retry-count retry-config)
         exchange (if (> max-retry retry-attempts) waiting-exchange dead-letter-exchange)
@@ -61,7 +61,6 @@
                              "x-dead-letter-routing-key" routing-key
                              }})
     (lq/bind ch exp-waiting-queue-name waiting-exchange {:routing-key exp-waiting-queue-name})
-    (println "publishing****************************** TO: " (if (= exchange dead-letter-exchange) routing-key exp-waiting-queue-name))
     (lb/publish ch
                 exchange
                 (if (= exchange dead-letter-exchange) routing-key exp-waiting-queue-name)
@@ -73,8 +72,9 @@
   (lb/ack ch (:delivery-tag meta)))
 
 
-(defn- plain-nack [ch message meta routing-key retry-attempts max-retry waiting-exchange dead-letter-exchange message-exchange logger-fn]
-  (let [retry-attempts (int retry-attempts)
+(defn- plain-nack [ch message meta routing-key retry-attempts {:keys [waiting-exchange dead-letter-exchange message-exchange retry-config]} logger-fn]
+  (let [max-retry (:max-retry-count retry-config)
+        retry-attempts (int retry-attempts)
         exchange (if (> max-retry retry-attempts) waiting-exchange dead-letter-exchange)]
     (when logger-fn (logger-fn "LOGME ns=carrot.core name=current-retry-attempt message:" (:message-id meta) retry-attempts))
     (when logger-fn (logger-fn "Sending message " (:message-id meta)  " to the exchange: " exchange))
@@ -90,15 +90,15 @@
 
 
 
-(defn- nack [ch message meta routing-key retry-attempts retry-config waiting-exchange dead-letter-exchange message-exchange logger-fn]
-  (if (:max-retry-count retry-config)
-    (exp-nack ch message meta routing-key retry-attempts retry-config waiting-exchange dead-letter-exchange message-exchange logger-fn)
-    (plain-nack ch message meta routing-key retry-attempts retry-config waiting-exchange dead-letter-exchange message-exchange logger-fn)))
+(defn- nack [ch message meta routing-key retry-attempts carrot-system logger-fn]
+  (if (= :exp-backoff (get-in carrot-system [:retry-config :strategy]))
+    (exp-nack ch message meta routing-key retry-attempts carrot-system logger-fn)
+    (plain-nack ch message meta routing-key retry-attempts carrot-system logger-fn)))
 
 
 
 
-(defn- message-handler [message-handler routing-key retry-config waiting-exchange dead-letter-exchange message-exchange logger-fn ch meta ^bytes payload]
+(defn- message-handler [message-handler routing-key carrot-system logger-fn ch meta ^bytes payload]
   (try
     (let [carrot-map {:channel ch
                       :meta meta
@@ -111,44 +111,47 @@
       (when logger-fn
         (logger-fn "LOGME ns=carrot.core name=message-process-error message-id="(:message-id meta) "error="e " exception="(clojure.stacktrace/print-stack-trace e)))
       (if (retry-exception? e logger-fn)
-        (nack ch payload meta routing-key (or (get (:headers meta) "retry-attempts") 0) retry-config waiting-exchange dead-letter-exchange message-exchange logger-fn)
+        (nack ch payload meta routing-key (or (get (:headers meta) "retry-attempts") 0) carrot-system logger-fn)
         (lb/ack ch (:delivery-tag meta))))))
 
+
+(defn crate-message-handler-function
+  ([handler routing-key carrot-system logger-fn]
+   (partial message-handler handler routing-key carrot-system logger-fn))
+  ([handler routing-key carrot-system]
+   (crate-message-handler-function message-handler handler routing-key carrot-system nil)))
+
+
 (defn declare-normal-system [channel
-                             {:keys [waiting-exchange dead-letter-exchange waiting-queue message-exchange]}
-                             message-ttl
+                             {:keys [waiting-exchange dead-letter-exchange waiting-queue message-exchange retry-config]}
                              exchange-type
                              exchange-config
                              waiting-queue-config]
   (le/declare channel waiting-exchange exchange-type exchange-config)
   (le/declare channel message-exchange exchange-type exchange-config)
   (le/declare channel dead-letter-exchange exchange-type exchange-config)
-  (let [message-ttl-config (if (not  (or (= message-ttl 0) (= message-ttl "N/A")))  {:arguments {"x-message-ttl" message-ttl}} {})
-        waiting-queue-name (:queue (lq/declare channel waiting-queue
+  (let [waiting-queue-name (:queue (lq/declare channel waiting-queue
                                                (merge-with merge
                                                            waiting-queue-config
-                                                           message-ttl-config
                                                            {:exlusive false
                                                             :auto-delete true
-                                                          :durable true
-                                                            :arguments {"x-dead-letter-exchange" message-exchange}})))]
+                                                            :durable true
+                                                            :arguments {"x-message-ttl" (:message-ttl retry-config)
+                                                                        "x-dead-letter-exchange" message-exchange}})))]
     (lq/bind channel waiting-queue-name waiting-exchange {:routing-key "#"})))
 
 
 (defn declare-exp-backoff-system [channel
                              {:keys [waiting-exchange dead-letter-exchange waiting-queue message-exchange]}
-                             message-ttl
                              exchange-type
                              exchange-config
-                             waiting-queue-config]
+                                  waiting-queue-config]
   (le/declare channel waiting-exchange exchange-type exchange-config)
   (le/declare channel message-exchange exchange-type exchange-config)
   (le/declare channel dead-letter-exchange exchange-type exchange-config)
-  (let [message-ttl-config (if (not  (or (= message-ttl 0) (= message-ttl "N/A")))  {:arguments {"x-message-ttl" message-ttl}} {})
-        waiting-queue-name (:queue (lq/declare channel waiting-queue
+  (let [waiting-queue-name (:queue (lq/declare channel waiting-queue
                                                (merge-with merge
                                                            waiting-queue-config
-                                                           message-ttl-config
                                                            {:exlusive false
                                                             :auto-delete true
                                                           :durable true
@@ -158,31 +161,26 @@
 (defn declare-system
   ([channel
     carrot-system
-    message-ttl
     exchange-type
     exchange-config
     waiting-queue-config]
    (case (get-in carrot-system [:retry-config :strategy])
      :simple-backoff (declare-normal-system channel
                                 carrot-system
-                                message-ttl
                                 exchange-type
                                 exchange-config
                                 waiting-queue-config)
      :exp-backoff (declare-exp-backoff-system channel
                                          carrot-system
-                                         message-ttl
                                          exchange-type
                                          exchange-config
                                          waiting-queue-config)))
   ([channel
     carrot-system
-    message-ttl
     exchange-type
     exchange-config]
    (declare-system channel
                    carrot-system
-                   message-ttl
                    exchange-type
                    exchange-config
                    {})))
@@ -220,12 +218,6 @@
               message-handler
               queue-config
               {})))
-
-(defn crate-message-handler-function
-  ([handler routing-key retry-config {:keys [waiting-exchange dead-letter-exchange message-exchange]} logger-fn]
-   (partial message-handler handler routing-key retry-config waiting-exchange dead-letter-exchange message-exchange logger-fn))
-  ([handler routing-key retry-config {:keys [waiting-exchange dead-letter-exchange message-exchange]}]
-   (crate-message-handler-function message-handler handler routing-key retry-config waiting-exchange message-exchange dead-letter-exchange nil)))
 
 (defmacro compose-payload-handler-function
   [& args]

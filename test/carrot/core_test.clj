@@ -50,14 +50,15 @@
           dead-msg-handler (fn [ch meta payload]
                           (.countDown latch-dead))
           log-called (fn [tag] (fn [_] (swap! event-list conj tag)))] ;;when this functin is called we swap the atom: we add the caslled tag
-      (def carrot-config {:retry-config {:strategy :simple-backoff}
+      (def carrot-config {:retry-config {:strategy :simple-backoff
+                                         :message-ttl 3000
+                                         :max-retry-count 3}
                         :waiting-exchange "waiting-exchange"
                         :dead-letter-exchange "dead-letter-exchange"
                         :waiting-queue "waiting-queue"
                         :message-exchange "message-exchange"})
       (carrot/declare-system channel
                            carrot-config
-                           3000
                            "topic"
                            {:durable true}
                            {:arguments {"x-max-length" 1000}})
@@ -69,7 +70,6 @@
                         (carrot/crate-message-handler-function
                          msg-handler
                          qname
-                         3
                          carrot-config
                          println)
                         {:auto-ack false :handle-consume-ok (log-called :handle-consume-ok)};; consume-ok function is called when message consumption is OK.(thi is in this case the log-called function with a tag.)
@@ -101,14 +101,15 @@
           dead-msg-handler (fn [ch meta payload]
                           (.countDown latch-dead))
           log-called (fn [tag] (fn [_] (swap! event-list conj tag)))] ;;when this functin is called we swap the atom: we add the caslled tag
-      (def carrot-config {:retry-config {:strategy :exp-backoff}
-                        :waiting-exchange "waiting-exchange"
-                        :dead-letter-exchange "dead-letter-exchange"
-                        :waiting-queue "waiting-queue"
-                        :message-exchange "message-exchange"})
+      (def carrot-config {:retry-config {:strategy :exp-backoff
+                                         :initial-ttl 30
+                                         :max-retry-count 3}
+                          :waiting-exchange "waiting-exchange"
+                          :dead-letter-exchange "dead-letter-exchange"
+                          :waiting-queue "waiting-queue"
+                          :message-exchange "message-exchange"})
       (carrot/declare-system channel
                            carrot-config
-                           "N/A";;no ttl set!!!
                            "topic"
                            {:durable true}
                            {:arguments {"x-max-length" 1000}})
@@ -120,7 +121,6 @@
                         (carrot/crate-message-handler-function
                          msg-handler
                          qname
-                         {:initial-ttl 30 :max-retry-count 3}
                          carrot-config
                          println)
                         {:yauto-ack false :handle-consume-ok (log-called :handle-consume-ok)};; consume-ok function is called when message consumption is OK.(thi is in this case the log-called function with a tag.)
