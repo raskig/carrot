@@ -29,10 +29,13 @@
   (log/info all))
 
 ;;define ypur exchange and queue names in a carrot config map:
-(def carrot-config {:waiting-exchange "waiting-exchange"
-                    :dead-letter-exchange "dead-letter-exchange"
-                    :waiting-queue "waiting-queue"
-                    :message-exchange "message-exchange"})
+(def carrot-config {:retry-config {:strategy :simple-backoff
+                                         :message-ttl 3000
+                                         :max-retry-count 3}
+                        :waiting-exchange "waiting-exchange"
+                        :dead-letter-exchange "dead-letter-exchange"
+                        :waiting-queue "waiting-queue"
+                        :message-exchange "message-exchange"})
 
 (defn dead-queue-config-function [queue-name]
   {:arguments {"x-max-length" 1000}})
@@ -42,40 +45,37 @@
 (defn- main
   [& args]
   (let [conn  (rmq/connect)
-        ch    (lch/open conn)
+        channel    (lch/open conn)
         qname "message-queue"]
-    (println (format "[main] Connected. Channel id: %d" (.getChannelNumber ch)))
+    (println (format "[main] Connected. Channel id: %d" (.getChannelNumber channel)))
     ;;declare your carrot system
-    (carrot/declare-system ch
+    (carrot/declare-system channel
                            carrot-config
-                           3000
                            "topic"
                            {:durable true}
                            {:arguments {"x-max-length" 1000}})
 
     ;;declare your queue where you want to send your business messages:
-    (lq/declare ch qname {:exclusive false :auto-delete false})
+    (lq/declare channel qname {:exclusive false :auto-delete false})
     ;;bind your queue to your main message exchange. Use the same name you defined in carrot system config:
-    (lq/bind ch qname "message-exchange" {:routing-key qname})
-    (carrot/subscribe ch
-                      carrot-config
-                      qname
-                      ;;user carrot to create the message handler for langohr:
-                      (carrot/crate-message-handler-function
-                       (comp
+    (lq/bind channel qname "message-exchange" {:routing-key qname})
+    (carrot/subscribe channel
+                        carrot-config
+                        qname
+                        (carrot/crate-message-handler-function
+                         (comp
                         message-handler-01
                         message-handler-02
-                        ;;here you can en list more functions and they will be threaded in order via threading macro
+                        ;;here you can en list more functions and they will be threaded in order via threading macr
                         ;;and will compose a message handler function
                         )
-                       qname
-                       3
-                       carrot-config
-                       logger)
-                      {:auto-ack false}
-                      dead-queue-config-function)
-    (lb/publish ch default-exchange-name qname "Hello World!" {:content-type "text/plain" :type "greetings.hi" :message-id (str (java.util.UUID/randomUUID))})
+                         qname
+                         carrot-config
+                         println)
+                        {:auto-ack false}
+                        dead-queue-config-function)
+    (lb/publish channel default-exchange-name qname "Hello World!" {:content-type "text/plain" :type "greetings.hi" :message-id (str (java.util.UUID/randomUUID))})
     (Thread/sleep 20000)
     (println "[main] Disconnecting...")
-    (rmq/close ch)
+    (rmq/close channel)
     (rmq/close conn)))
