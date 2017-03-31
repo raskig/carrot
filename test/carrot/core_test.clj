@@ -7,6 +7,7 @@
             [langohr.basic     :as lhb]
             [langohr.util      :as lhu]
             [carrot.core :as carrot]
+            [carrot.exp-backoff :as exp-backoff-carrot]
             [langohr.channel   :as lch]
             [clojure.test :refer :all])
   (:import [com.rabbitmq.client Connection Channel AMQP
@@ -99,7 +100,8 @@
           log-called (fn [tag] (fn [_] (swap! event-list conj tag)))] ;;when this functin is called we swap the atom: we add the caslled tag
       (def carrot-config {:retry-config {:strategy :exp-backoff
                                          :initial-ttl 30
-                                         :max-retry-count 3}
+                                         :max-retry-count 3
+                                         :next-ttl-function exp-backoff-carrot/next-ttl}
                           :waiting-exchange "waiting-exchange"
                           :dead-letter-exchange "dead-letter-exchange"
                           :waiting-queue "waiting-queue"

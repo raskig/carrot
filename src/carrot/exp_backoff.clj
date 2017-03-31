@@ -5,13 +5,14 @@
             [langohr.exchange :as le]
             [langohr.consumers :as lc]))
 
-
+(defn next-ttl [retry-attempts retry-config]
+  (int (+ 300 (.pow (BigInteger. (str (:initial-ttl retry-config))) (int (+ 1 retry-attempts))))))
 
 (defn nack [ch message meta routing-key retry-attempts {:keys [waiting-exchange dead-letter-exchange message-exchange retry-config]} logger-fn]
   (let [retry-attempts (int retry-attempts)
         max-retry (:max-retry-count retry-config)
         exchange (if (> max-retry retry-attempts) waiting-exchange dead-letter-exchange)
-        calculated-ttl (int (+ 300 (.pow (BigInteger. (str (:initial-ttl retry-config))) (int (+ 1 retry-attempts)))))
+        calculated-ttl (apply (-> retry-config :next-ttl-function) [retry-attempts retry-config])
         exp-waiting-queue-name (str "waiting-" routing-key "-"  (str calculated-ttl))]
     (when logger-fn (logger-fn "LOGME ns=carrot.core name=current-retry-attempt message:" (:message-id meta) retry-attempts))
     (when logger-fn (logger-fn "Sending message " (:message-id meta)  " to the exchange: " exchange))
