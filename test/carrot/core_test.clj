@@ -15,17 +15,12 @@
             QueueingConsumer GetResponse AMQP$Queue$DeclareOk]
            java.util.UUID
            java.util.concurrent.TimeUnit))
-
-
-(def carrot-config {:waiting-exchange "waiting-exchange"
-                    :dead-letter-exchange "dead-letter-exchange"
-                    :waiting-queue "waiting-queue"
-                          :message-exchange "message-exchange"})
+(def carrot-system {})
 
 (deftest destroy
   (with-open [conn (lhc/connect)
               channel (lch/open conn)]
-    (carrot/destroy-system channel carrot-config '("message-queue"))))
+    (carrot/destroy-system channel carrot-system '("message-queue"))))
 
 (defn with-destroy [f]
   (f)
@@ -51,7 +46,7 @@
           dead-msg-handler (fn [ch meta payload]
                           (.countDown latch-dead))
           log-called (fn [tag] (fn [_] (swap! event-list conj tag)))] ;;when this functin is called we swap the atom: we add the caslled tag
-      (def carrot-config {:retry-config {:strategy :simple-backoff
+      (def carrot-system {:retry-config {:strategy :simple-backoff
                                          :message-ttl 3000
                                          :max-retry-count 3}
                           :waiting-exchange "waiting-exchange"
@@ -62,16 +57,16 @@
                           :exchange-config {:durable true}
                           :waiting-queue-config {:arguments {"x-max-length" 1000}}})
       (carrot/declare-system channel
-                           carrot-config)
+                           carrot-system)
       (lhq/declare channel qname {:exclusive false :auto-delete true})
       (lhq/bind channel qname "message-exchange" {:routing-key qname})
       (carrot/subscribe channel
-                        carrot-config
+                        carrot-system
                         qname
                         (carrot/crate-message-handler-function
                          msg-handler
                          qname
-                         carrot-config
+                         carrot-system
                          println)
                         {:auto-ack false :handle-consume-ok (log-called :handle-consume-ok)};; consume-ok function is called when message consumption is OK.(thi is in this case the log-called function with a tag.)
                         dead-queue-config-function)
@@ -98,7 +93,7 @@
           dead-msg-handler (fn [ch meta payload]
                           (.countDown latch-dead))
           log-called (fn [tag] (fn [_] (swap! event-list conj tag)))] ;;when this functin is called we swap the atom: we add the caslled tag
-      (def carrot-config {:retry-config {:strategy :exp-backoff
+      (def carrot-system {:retry-config {:strategy :exp-backoff
                                          :initial-ttl 30
                                          :max-retry-count 3
                                          :next-ttl-function exp-backoff-carrot/next-ttl}
@@ -110,16 +105,16 @@
                           :exchange-config {:durable true}
                           :waiting-queue-config {:arguments {"x-max-length" 1000}}})
       (carrot/declare-system channel
-                             carrot-config)
+                             carrot-system)
       (lhq/declare channel qname {:exclusive false :auto-delete true})
       (lhq/bind channel qname "message-exchange" {:routing-key qname})
       (carrot/subscribe channel
-                        carrot-config
+                        carrot-system
                         qname
                         (carrot/crate-message-handler-function
                          msg-handler
                          qname
-                         carrot-config
+                         carrot-system
                          println)
                         {:yauto-ack false :handle-consume-ok (log-called :handle-consume-ok)};; consume-ok function is called when message consumption is OK.(thi is in this case the log-called function with a tag.)
                         dead-queue-config-function)
