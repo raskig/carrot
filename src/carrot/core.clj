@@ -103,9 +103,7 @@
     dead-queue-config-function]
    (lc/subscribe channel queue-name message-handler queue-config)
    (lq/declare channel (str "dead-" queue-name)
-               (merge-with merge (dead-queue-config-function queue-name)
-                           {:exclusive false
-                            :auto-delete false}))
+               (dead-queue-config-function queue-name))
    (lq/bind channel (str "dead-" queue-name) dead-letter-exchange {:routing-key queue-name}))
   ([channel
     carrot-config
