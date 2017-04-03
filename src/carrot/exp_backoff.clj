@@ -17,9 +17,8 @@
     (when logger-fn (logger-fn "LOGME ns=carrot.core name=current-retry-attempt message:" (:message-id meta) retry-attempts))
     (when logger-fn (logger-fn "Sending message " (:message-id meta)  " to the exchange: " exchange))
     (lq/declare ch exp-waiting-queue-name
-                {:exlusive false
-                 :auto-delete false
-                 :durable true
+                {:durable true
+                 :auto-delete true
                  :arguments {"x-message-ttl" calculated-ttl
                              "x-expires" (* 100 calculated-ttl)
                              "x-dead-letter-exchange" message-exchange
