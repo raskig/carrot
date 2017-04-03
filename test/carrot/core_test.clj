@@ -54,15 +54,15 @@
       (def carrot-config {:retry-config {:strategy :simple-backoff
                                          :message-ttl 3000
                                          :max-retry-count 3}
-                        :waiting-exchange "waiting-exchange"
-                        :dead-letter-exchange "dead-letter-exchange"
-                        :waiting-queue "waiting-queue"
-                        :message-exchange "message-exchange"})
+                          :waiting-exchange "waiting-exchange"
+                          :dead-letter-exchange "dead-letter-exchange"
+                          :waiting-queue "waiting-queue"
+                          :message-exchange "message-exchange"
+                          :exchange-type "topic"
+                          :exchange-config {:durable true}
+                          :waiting-queue-config {:arguments {"x-max-length" 1000}}})
       (carrot/declare-system channel
-                           carrot-config
-                           "topic"
-                           {:durable true}
-                           {:arguments {"x-max-length" 1000}})
+                           carrot-config)
       (lhq/declare channel qname {:exclusive false :auto-delete true})
       (lhq/bind channel qname "message-exchange" {:routing-key qname})
       (carrot/subscribe channel
@@ -105,12 +105,12 @@
                           :waiting-exchange "waiting-exchange"
                           :dead-letter-exchange "dead-letter-exchange"
                           :waiting-queue "waiting-queue"
-                          :message-exchange "message-exchange"})
+                          :message-exchange "message-exchange"
+                          :exchange-type "topic"
+                          :exchange-config {:durable true}
+                          :waiting-queue-config {:arguments {"x-max-length" 1000}}})
       (carrot/declare-system channel
-                           carrot-config
-                           "topic"
-                           {:durable true}
-                           {:arguments {"x-max-length" 1000}})
+                             carrot-config)
       (lhq/declare channel qname {:exclusive false :auto-delete true})
       (lhq/bind channel qname "message-exchange" {:routing-key qname})
       (carrot/subscribe channel

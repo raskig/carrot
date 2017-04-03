@@ -33,12 +33,12 @@
 
 ;;define your exchange and queue names in a carrot config map:
 (def carrot-config {:retry-config {:strategy :simple-backoff
-                                         :message-ttl 3000
-                                         :max-retry-count 3}
-                        :waiting-exchange "waiting-exchange"
-                        :dead-letter-exchange "dead-letter-exchange"
-                        :waiting-queue "waiting-queue"
-                        :message-exchange "message-exchange"})
+                                   :message-ttl 3000
+                                   :max-retry-count 3}
+                    :waiting-exchange "waiting-exchange"
+                    :dead-letter-exchange "dead-letter-exchange"
+                    :waiting-queue "waiting-queue"
+                    :message-exchange "message-exchange"})
 
 (defn dead-queue-config-function [queue-name]
   {:arguments {"x-max-length" 1000}})
@@ -66,11 +66,11 @@
                         qname
                         (carrot/crate-message-handler-function
                          (comp
-                        message-handler-01
-                        message-handler-02
-                        ;;here you can en list more functions and they will be threaded in order via threading macr
-                        ;;and will compose a message handler function
-                        )
+                          message-handler-01
+                          message-handler-02
+                          ;;here you can en list more functions and they will be threaded in order via threading macr
+                          ;;and will compose a message handler function
+                          )
                          qname
                          carrot-config
                          println)

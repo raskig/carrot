@@ -80,37 +80,10 @@
 
 
 
-
-
-
-
-
-(defn declare-system
-  ([channel
-    carrot-system
-    exchange-type
-    exchange-config
-    waiting-queue-config]
-   (case (get-in carrot-system [:retry-config :strategy])
-     :simple-backoff (delayed-retry/declare-system channel
-                                carrot-system
-                                exchange-type
-                                exchange-config
-                                waiting-queue-config)
-     :exp-backoff (exp-backoff/declare-system channel
-                                         carrot-system
-                                         exchange-type
-                                         exchange-config
-                                         waiting-queue-config)))
-  ([channel
-    carrot-system
-    exchange-type
-    exchange-config]
-   (declare-system channel
-                   carrot-system
-                   exchange-type
-                   exchange-config
-                   {})))
+(defn declare-system[channel carrot-system]
+  (case (get-in carrot-system [:retry-config :strategy])
+    :simple-backoff (delayed-retry/declare-system channel carrot-system)
+    :exp-backoff (exp-backoff/declare-system channel carrot-system)))
 
 (defn destroy-system [channel {:keys [waiting-exchange dead-letter-exchange waiting-queue message-exchange]} queue-name-coll]
   (map #(lq/delete channel %) queue-name-coll)

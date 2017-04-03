@@ -38,10 +38,8 @@
 
 
 (defn declare-system [channel
-                             {:keys [waiting-exchange dead-letter-exchange message-exchange]}
-                             exchange-type
-                             exchange-config
-                                  waiting-queue-config]
+                      {:keys [waiting-exchange dead-letter-exchange message-exchange exchange-type exchange-config waiting-queue-config]
+                       :or {:waiting-queue-config {}}}]
   (le/declare channel waiting-exchange exchange-type exchange-config)
   (le/declare channel message-exchange exchange-type exchange-config)
   (le/declare channel dead-letter-exchange exchange-type exchange-config))
