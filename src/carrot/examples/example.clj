@@ -29,13 +29,17 @@
   (log/info all))
 
 ;;define ypur exchange and queue names in a carrot config map:
-(def carrot-config {:retry-config {:strategy :simple-backoff
-                                         :message-ttl 3000
-                                         :max-retry-count 3}
-                        :waiting-exchange "waiting-exchange"
-                        :dead-letter-exchange "dead-letter-exchange"
-                        :waiting-queue "waiting-queue"
-                        :message-exchange "message-exchange"})
+(def carrot-system {:retry-config {:strategy :simple-backoff
+                                   :message-ttl 3000
+                                   :max-retry-count 3}
+                    :waiting-exchange "waiting-exchange"
+                    :dead-letter-exchange "dead-letter-exchange"
+                    :waiting-queue "waiting-queue"
+                    :message-exchange "message-exchange"
+                    :exchange-type "topic"
+                    :exchange-config {:durable true}
+                    :waiting-queue-config {:arguments {"x-max-length" 1000}}})
+
 
 (defn dead-queue-config-function [queue-name]
   {:arguments {"x-max-length" 1000}})
@@ -49,28 +53,24 @@
         qname "message-queue"]
     (println (format "[main] Connected. Channel id: %d" (.getChannelNumber channel)))
     ;;declare your carrot system
-    (carrot/declare-system channel
-                           carrot-config
-                           "topic"
-                           {:durable true}
-                           {:arguments {"x-max-length" 1000}})
+    (carrot/declare-system channel carrot-system)
 
     ;;declare your queue where you want to send your business messages:
     (lq/declare channel qname {:exclusive false :auto-delete false})
     ;;bind your queue to your main message exchange. Use the same name you defined in carrot system config:
     (lq/bind channel qname "message-exchange" {:routing-key qname})
     (carrot/subscribe channel
-                        carrot-config
+                        carrot-system
                         qname
                         (carrot/crate-message-handler-function
                          (comp
-                        message-handler-01
-                        message-handler-02
-                        ;;here you can en list more functions and they will be threaded in order via threading macr
-                        ;;and will compose a message handler function
-                        )
+                          message-handler-01
+                          message-handler-02
+                          ;;here you can en list more functions and they will be threaded in order via threading macr
+                          ;;and will compose a message handler function
+                          )
                          qname
-                         carrot-config
+                         carrot-system
                          println)
                         {:auto-ack false}
                         dead-queue-config-function)
