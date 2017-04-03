@@ -43,45 +43,64 @@ Main steps:
 ```clojure
 :require [carrot.core :as carrot]
 ```
-- Define your exchange and queue names in a carrot config map (for details see [architecture](https://cloud.githubusercontent.com/assets/3204818/23512162/99eec068-ff57-11e6-9176-a883f79a9e22.png)):
+- Define your exchange and queue names in a carrot config map along with the retry configuration strategy (for details see [architecture](https://cloud.githubusercontent.com/assets/3204818/23512162/99eec068-ff57-11e6-9176-a883f79a9e22.png))
+
+simple backoff example:
 
 ```clojure
-(def carrot-config {:waiting-exchange "waiting-exchange"
+(def carrot-system {:retry-config {:strategy :simple-backoff
+                                   :message-ttl 3000
+                                   :max-retry-count 3}
+                    :waiting-exchange "waiting-exchange"
                     :dead-letter-exchange "dead-letter-exchange"
                     :waiting-queue "waiting-queue"
-                    :message-exchange "message-exchange"})
+                    :message-exchange "message-exchange"
+                    :exchange-type "topic"
+                    :exchange-config {:durable true}
+                    :waiting-queue-config {:arguments {"x-max-length" 1000}}})
 ```
+exponential backoff example:
+
+```clojure
+(def carrot-system {:retry-config {:strategy :exp-backoff
+                                         :initial-ttl 30
+                                         :max-retry-count 3
+                                         :next-ttl-function exp-backoff-carrot/next-ttl}
+                          :waiting-exchange "waiting-exchange"
+                          :dead-letter-exchange "dead-letter-exchange"
+                          :waiting-queue "waiting-queue"
+                          :message-exchange "message-exchange"
+                          :exchange-type "topic"
+                          :exchange-config {:durable true}
+                          :waiting-queue-config {:arguments {"x-max-length" 1000}}})
+```
+
+In case of exponential backoff, you can define your own function to determine the next ttl value after a retry.
+
 
 - Declare your carrot system which will declare exchanges and queues with the given configuration:
 ```clojure
- (carrot/declare-system ch
-                           carrot-config
-                           3000;;ttl spent in waiting queue (in milliseconds)
-                           "topic";;type for the exchanges
-                           {:durable true};;config for the exchanges
-                           )
+(carrot/declare-system channel carrot-system)
  ```
+ Here the "channel" is the open langohr connection.
 
 - You subscribe for your message queues by using carrot subscribe function:
 ```clojure
-(carrot/subscribe ch
-                      carrot-config
-                      qname
-                      ;;use carrot to create the message handler for langohr:
-                      (carrot/crate-message-handler-function
-                       (comp
-                        message-handler-01
-                        message-handler-02
-                        message-handler-03
-                        ;;here you can en list more functions and they will be threaded in order via threading macro
-                        ;;and will compose a message handler function
-                        )
-                       qname
-                       3
-                       carrot-config
-                       logger)
-                      {:auto-ack false};;do not auto acknoledge carrot will do it for you  
-                      )
+(carrot/subscribe channel
+                        carrot-system
+                        qname
+                        (carrot/crate-message-handler-function
+                         (comp
+                          message-handler-01
+                          message-handler-02
+                          ;;here you can en list more functions and they will be threaded in order via threading macr
+                          ;;and will compose a message handler function
+                          )
+                         qname
+                         carrot-system
+                         println)
+                        {:auto-ack false}
+                        dead-queue-config-function)
 ```
 [Full example code](src/carrot/examples/example.clj)
 
@@ -103,13 +122,22 @@ Main steps:
 [Example code for this](src/carrot/examples/example_without_retry.clj)
 
 ## Exponencial backoff
-- You can configure carrot to run with exponencial backoff. 
-- For this feature you pass the "retry-config map" instead of the max retry parameter. This looks like for example:
+- You can configure carrot to run with exponencial backoff by defining te system using ex-backoff startegy: 
+
 ```clojure
-{:initial-ttl 30 :max-retry-count 3}
+(def carrot-system {:retry-config {:strategy :exp-backoff
+                                         :initial-ttl 30
+                                         :max-retry-count 3
+                                         :next-ttl-function exp-backoff-carrot/next-ttl}
+                          :waiting-exchange "waiting-exchange"
+                          :dead-letter-exchange "dead-letter-exchange"
+                          :waiting-queue "waiting-queue"
+                          :message-exchange "message-exchange"
+                          :exchange-type "topic"
+                          :exchange-config {:durable true}
+                          :waiting-queue-config {:arguments {"x-max-length" 1000}}})
 ```
-- This means in case the message processing fails, first it waits 30 miliseconds than if it fails again it will wait (30 * 30) miliseconds than (30 * 30 * 30). And it will still retry processing the message 3 times.
-- DONT Forget: in this usecase you have to set the message-ttl when you create the carrot-system to 0 or "N/A"
+- You can defne your own "next-ttl" implementation instead of carrot's [reference implementation](https://github.com/raskig/carrot/blob/master/src/carrot/exp_backoff.clj#L8).
 
 
 
