@@ -95,6 +95,7 @@
           log-called (fn [tag] (fn [_] (swap! event-list conj tag)))] ;;when this functin is called we swap the atom: we add the caslled tag
       (def carrot-system {:retry-config {:strategy :exp-backoff
                                          :initial-ttl 30
+                                         :max-ttl 360000
                                          :max-retry-count 3
                                          :next-ttl-function exp-backoff-carrot/next-ttl}
                           :waiting-exchange "waiting-exchange"

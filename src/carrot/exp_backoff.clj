@@ -5,8 +5,9 @@
             [langohr.exchange :as le]
             [langohr.consumers :as lc]))
 
+
 (defn next-ttl [retry-attempts retry-config]
-  (int (+ 300 (.pow (BigInteger. (str (:initial-ttl retry-config))) (int (+ 1 retry-attempts))))))
+  (int (min (* (.pow (BigInteger. "2") (int retry-attempts)) (:initial-ttl retry-config)) (:max-ttl retry-config))))
 
 (defn nack [ch message meta routing-key retry-attempts {:keys [waiting-exchange dead-letter-exchange message-exchange retry-config]} logger-fn]
   (let [retry-attempts (int retry-attempts)
