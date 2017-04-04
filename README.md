@@ -24,13 +24,13 @@ The idea is the following:
 
 * I publish releases to [Clojars]
 
-* Latest release is [carrot "1.0.0"]
+* Latest release is [carrot "1.0.1"]
 
 * [All releases]
 
 [Leiningen] dependency information:
 
-   [carrot "1.0.0"]
+   [carrot "1.0.1"]
 
 ## Usage
 
