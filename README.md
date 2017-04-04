@@ -64,6 +64,7 @@ exponential backoff example:
 ```clojure
 (def carrot-system {:retry-config {:strategy :exp-backoff
                                          :initial-ttl 30
+                                         :max-ttl 360000
                                          :max-retry-count 3
                                          :next-ttl-function exp-backoff-carrot/next-ttl}
                           :waiting-exchange "waiting-exchange"
@@ -127,6 +128,7 @@ In case of exponential backoff, you can define your own function to determine th
 ```clojure
 (def carrot-system {:retry-config {:strategy :exp-backoff
                                          :initial-ttl 30
+                                         :max-ttl 360000
                                          :max-retry-count 3
                                          :next-ttl-function exp-backoff-carrot/next-ttl}
                           :waiting-exchange "waiting-exchange"
