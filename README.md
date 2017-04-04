@@ -122,8 +122,8 @@ In case of exponential backoff, you can define your own function to determine th
 ```
 [Example code for this](src/carrot/examples/example_without_retry.clj)
 
-## Exponencial backoff
-- You can configure carrot to run with exponencial backoff by defining te system using ex-backoff startegy: 
+## Exponential backoff
+- You can configure carrot to run with exponential backoff by defining te system using ex-backoff startegy: 
 
 ```clojure
 (def carrot-system {:retry-config {:strategy :exp-backoff
