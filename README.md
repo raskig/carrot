@@ -141,8 +141,8 @@ In case of exponential backoff, you can define your own function to determine th
 ```
 - You can defne your own "next-ttl" implementation instead of carrot's [reference implementation](https://github.com/raskig/carrot/blob/master/src/carrot/exp_backoff.clj#L8).
 
-
-
+The detailed arcitecture of exponential backoff strategy is shown here:
+![alt tag](https://cloud.githubusercontent.com/assets/3204818/24652414/aede3878-1929-11e7-8378-3ca3a1e4d22c.png)
 
 ## TODOS
 - support function for replaying messages ended up in dead letter queue
