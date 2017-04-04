@@ -6,10 +6,10 @@ Library to keep your rabbits running...
 
 ![alt tag](https://cloud.githubusercontent.com/assets/3204818/23513284/5d24a108-ff5b-11e6-8f0d-12126f820385.png) 
 
-A Clojure library designed to provide you with the implementation of the following simple RabbitMq delayed retry mechanism:
+A Clojure library designed to provide you with the implementation of the following simple RabbitMq delayed retry mechanism (click to enlarge):
 ![alt tag](https://cloud.githubusercontent.com/assets/3204818/23512162/99eec068-ff57-11e6-9176-a883f79a9e22.png)
 
-...Or a more sophisticated exponential back off:
+...Or a more sophisticated exponential back off (click to enlarge):
 ![alt tag](https://cloud.githubusercontent.com/assets/3204818/24652414/aede3878-1929-11e7-8378-3ca3a1e4d22c.png)
 
 The idea is the following:
