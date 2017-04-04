@@ -9,13 +9,15 @@ Library to keep your rabbits running...
 A Clojure library designed to provide you with the implementation of the following simple RabbitMq delayed retry mechanism:
 ![alt tag](https://cloud.githubusercontent.com/assets/3204818/23512162/99eec068-ff57-11e6-9176-a883f79a9e22.png)
 
+...Or a more sophisticated exponential back off:
+![alt tag](https://cloud.githubusercontent.com/assets/3204818/24652414/aede3878-1929-11e7-8378-3ca3a1e4d22c.png)
 
 The idea is the following:
 
 1. Provider sends a message to the message queue
 2. Consumer tries to process it
 3. While processing some exception is thrown
-4. Failed message gets into the waiting-queue for a period of time which can be configured (ttl)
+4. Failed message gets into the waiting-queue for a period of time which can be configured (in case of simple delayed retry) or will be calculated based on your configuration (in case of exponential back off).
 5. After the ttl expired the message is put back to message queue to try to process it again
 6. Steps 3-5 repeated until the message successfully processed or until the number of retries are less than the max-retry you running carrot with.
 7. When we exceed max retry, we put the message in the corresponding dead-letter queue sorted.
@@ -140,9 +142,6 @@ In case of exponential backoff, you can define your own function to determine th
                           :waiting-queue-config {:arguments {"x-max-length" 1000}}})
 ```
 - You can defne your own "next-ttl" implementation instead of carrot's [reference implementation](https://github.com/raskig/carrot/blob/master/src/carrot/exp_backoff.clj#L8).
-
-The detailed arcitecture of exponential backoff strategy is shown here:
-![alt tag](https://cloud.githubusercontent.com/assets/3204818/24652414/aede3878-1929-11e7-8378-3ca3a1e4d22c.png)
 
 ## TODOS
 - support function for replaying messages ended up in dead letter queue
