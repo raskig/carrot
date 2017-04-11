@@ -32,13 +32,13 @@
 (def carrot-system {:retry-config {:strategy :simple-backoff
                                    :message-ttl 3000
                                    :max-retry-count 3}
-                    :waiting-exchange "waiting-exchange"
+                    :retry-exchange "retry-exchange"
                     :dead-letter-exchange "dead-letter-exchange"
-                    :waiting-queue "waiting-queue"
+                    :retry-queue "retry-queue"
                     :message-exchange "message-exchange"
                     :exchange-type "topic"
                     :exchange-config {:durable true}
-                    :waiting-queue-config {:arguments {"x-max-length" 1000}}})
+                    :retry-queue-config {:arguments {"x-max-length" 1000}}})
 
 
 (defn dead-queue-config-function [queue-name]

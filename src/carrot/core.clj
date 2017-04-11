@@ -85,11 +85,11 @@
     :simple-backoff (delayed-retry/declare-system channel carrot-system)
     :exp-backoff (exp-backoff/declare-system channel carrot-system)))
 
-(defn destroy-system [channel {:keys [waiting-exchange dead-letter-exchange waiting-queue message-exchange]} queue-name-coll]
+(defn destroy-system [channel {:keys [retry-exchange dead-letter-exchange retry-queue message-exchange]} queue-name-coll]
   (map #(lq/delete channel %) queue-name-coll)
   (map #(lq/delete channel (str "dead-" %)) queue-name-coll)
-  (lq/delete channel waiting-queue)
-  (le/delete channel waiting-exchange)
+  (lq/delete channel retry-queue)
+  (le/delete channel retry-exchange)
   (le/delete channel dead-letter-exchange)
   (le/delete channel message-exchange))
 

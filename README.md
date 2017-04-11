@@ -1,10 +1,10 @@
-# carrot: 
+# carrot:\
 
 ##
 
 Library to keep your rabbits running...
 
-![alt tag](https://cloud.githubusercontent.com/assets/3204818/23513284/5d24a108-ff5b-11e6-8f0d-12126f820385.png) 
+![alt tag](https://cloud.githubusercontent.com/assets/3204818/23513284/5d24a108-ff5b-11e6-8f0d-12126f820385.png)
 
 A Clojure library designed to provide you with the implementation of the following simple RabbitMq delayed retry mechanism (click to enlarge):
 ![alt tag](https://cloud.githubusercontent.com/assets/3204818/23512162/99eec068-ff57-11e6-9176-a883f79a9e22.png)
@@ -17,7 +17,7 @@ The idea is the following:
 1. Provider sends a message to the message queue
 2. Consumer tries to process it
 3. While processing some exception is thrown
-4. Failed message gets into the waiting-queue for a period of time which can be configured (in case of simple delayed retry) or will be calculated based on your configuration (in case of exponential back off).
+4. Failed message gets into the retry-queue for a period of time which can be configured (in case of simple delayed retry) or will be calculated based on your configuration (in case of exponential back off).
 5. After the ttl expired the message is put back to message queue to try to process it again
 6. Steps 3-5 repeated until the message successfully processed or until the number of retries are less than the max-retry you running carrot with.
 7. When we exceed max retry, we put the message in the corresponding dead-letter queue sorted.
@@ -53,13 +53,13 @@ simple backoff example:
 (def carrot-system {:retry-config {:strategy :simple-backoff
                                    :message-ttl 3000
                                    :max-retry-count 3}
-                    :waiting-exchange "waiting-exchange"
+                    :retry-exchange "retry-exchange"
                     :dead-letter-exchange "dead-letter-exchange"
-                    :waiting-queue "waiting-queue"
+                    :retry-queue "retry-queue"
                     :message-exchange "message-exchange"
                     :exchange-type "topic"
                     :exchange-config {:durable true}
-                    :waiting-queue-config {:arguments {"x-max-length" 1000}}})
+                    :retry-queue-config {:arguments {"x-max-length" 1000}}})
 ```
 exponential backoff example:
 
@@ -69,13 +69,13 @@ exponential backoff example:
                                          :max-ttl 360000
                                          :max-retry-count 3
                                          :next-ttl-function exp-backoff-carrot/next-ttl}
-                          :waiting-exchange "waiting-exchange"
+                          :retry-exchange "retry-exchange"
                           :dead-letter-exchange "dead-letter-exchange"
-                          :waiting-queue "waiting-queue"
+                          :retry-queue "retry-queue"
                           :message-exchange "message-exchange"
                           :exchange-type "topic"
                           :exchange-config {:durable true}
-                          :waiting-queue-config {:arguments {"x-max-length" 1000}}})
+                          :retry-queue-config {:arguments {"x-max-length" 1000}}})
 ```
 
 In case of exponential backoff, you can define your own function to determine the next ttl value after a retry.
@@ -124,8 +124,8 @@ In case of exponential backoff, you can define your own function to determine th
 ```
 [Example code for this](src/carrot/examples/example_without_retry.clj)
 
-## Exponential backoff
-- You can configure carrot to run with exponential backoff by defining the system using ex-backoff startegy: 
+## Exponencial backoff
+- You can configure carrot to run with exponencial backoff by defining te system using ex-backoff startegy:
 
 ```clojure
 (def carrot-system {:retry-config {:strategy :exp-backoff
@@ -133,13 +133,13 @@ In case of exponential backoff, you can define your own function to determine th
                                          :max-ttl 360000
                                          :max-retry-count 3
                                          :next-ttl-function exp-backoff-carrot/next-ttl}
-                          :waiting-exchange "waiting-exchange"
+                          :retry-exchange "retry-exchange"
                           :dead-letter-exchange "dead-letter-exchange"
-                          :waiting-queue "waiting-queue"
+                          :retry-queue "retry-queue"
                           :message-exchange "message-exchange"
                           :exchange-type "topic"
                           :exchange-config {:durable true}
-                          :waiting-queue-config {:arguments {"x-max-length" 1000}}})
+                          :retry-queue-config {:arguments {"x-max-length" 1000}}})
 ```
 - You can defne your own "next-ttl" implementation instead of carrot's [reference implementation](https://github.com/raskig/carrot/blob/master/src/carrot/exp_backoff.clj#L8).
 

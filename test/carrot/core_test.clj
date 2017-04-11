@@ -49,13 +49,13 @@
       (def carrot-system {:retry-config {:strategy :simple-backoff
                                          :message-ttl 3000
                                          :max-retry-count 3}
-                          :waiting-exchange "waiting-exchange"
+                          :retry-exchange "retry-exchange"
                           :dead-letter-exchange "dead-letter-exchange"
-                          :waiting-queue "waiting-queue"
+                          :retry-queue "retry-queue"
                           :message-exchange "message-exchange"
                           :exchange-type "topic"
                           :exchange-config {:durable true}
-                          :waiting-queue-config {:arguments {"x-max-length" 1000}}})
+                          :retry-queue-config {:arguments {"x-max-length" 1000}}})
       (carrot/declare-system channel
                            carrot-system)
       (lhq/declare channel qname {:exclusive false :auto-delete true})
@@ -98,13 +98,13 @@
                                          :max-ttl 360000
                                          :max-retry-count 3
                                          :next-ttl-function exp-backoff-carrot/next-ttl}
-                          :waiting-exchange "waiting-exchange"
+                          :retry-exchange "retry-exchange"
                           :dead-letter-exchange "dead-letter-exchange"
-                          :waiting-queue "waiting-queue"
+                          :retry-queue "retry-queue"
                           :message-exchange "message-exchange"
                           :exchange-type "topic"
                           :exchange-config {:durable true}
-                          :waiting-queue-config {:arguments {"x-max-length" 1000}}})
+                          :retry-queue-config {:arguments {"x-max-length" 1000}}})
       (carrot/declare-system channel
                              carrot-system)
       (lhq/declare channel qname {:exclusive false :auto-delete true})
