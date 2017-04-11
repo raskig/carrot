@@ -70,7 +70,7 @@
                          println)
                         {:auto-ack false :handle-consume-ok (log-called :handle-consume-ok)};; consume-ok function is called when message consumption is OK.(thi is in this case the log-called function with a tag.)
                         dead-queue-config-function)
-      (lhcons/subscribe channel "dead-message-queue" dead-msg-handler {:auto-ack true :handle-consume-ok (log-called :handle-dead-message-ok)})
+      (lhcons/subscribe channel "message-queue.dead" dead-msg-handler {:auto-ack true :handle-consume-ok (log-called :handle-dead-message-ok)})
       (lhb/publish channel "message-exchange" qname "dummy payload" { :message-id (str (java.util.UUID/randomUUID))})
       (Thread/sleep 10000)
       (is (.await latch 700 TimeUnit/MILLISECONDS));;await causes the current thread to wait until the latch has counted down to zero, unless the thread is interrupted
@@ -119,7 +119,7 @@
                          println)
                         {:auto-ack false :handle-consume-ok (log-called :handle-consume-ok)};; consume-ok function is called when message consumption is OK.(thi is in this case the log-called function with a tag.)
                         dead-queue-config-function)
-      (lhcons/subscribe channel "dead-message-queue" dead-msg-handler {:auto-ack true :handle-consume-ok (log-called :handle-dead-message-ok)})
+      (lhcons/subscribe channel "message-queue.dead" dead-msg-handler {:auto-ack true :handle-consume-ok (log-called :handle-dead-message-ok)})
       (lhb/publish channel "message-exchange" qname "dummy payload" { :message-id (str (java.util.UUID/randomUUID))})
       (Thread/sleep (* 2 (+ 30 (* 30 30) (* 30 30 30))))
       (is (.await latch 700 TimeUnit/MILLISECONDS));;await causes the current thread to wait until the latch has counted down to zero, unless the thread is interrupted

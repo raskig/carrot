@@ -85,9 +85,12 @@
     :simple-backoff (delayed-retry/declare-system channel carrot-system)
     :exp-backoff (exp-backoff/declare-system channel carrot-system)))
 
+(defn- get-dead-letter-queue-name [queue-name]
+  (str queue-name ".dead"))
+
 (defn destroy-system [channel {:keys [retry-exchange dead-letter-exchange retry-queue message-exchange]} queue-name-coll]
   (map #(lq/delete channel %) queue-name-coll)
-  (map #(lq/delete channel (str "dead-" %)) queue-name-coll)
+  (map #(lq/delete channel get-dead-letter-queue-name) queue-name-coll)
   (lq/delete channel retry-queue)
   (le/delete channel retry-exchange)
   (le/delete channel dead-letter-exchange)
@@ -102,11 +105,11 @@
     queue-config
     dead-queue-config-function]
    (lc/subscribe channel queue-name message-handler queue-config)
-   (lq/declare channel (str "dead-" queue-name)
+   (lq/declare channel (get-dead-letter-queue-name queue-name)
                (merge-with merge (dead-queue-config-function queue-name)
                            {:durable true
                             :auto-delete true}))
-   (lq/bind channel (str "dead-" queue-name) dead-letter-exchange {:routing-key queue-name}))
+   (lq/bind channel (get-dead-letter-queue-name queue-name) dead-letter-exchange {:routing-key queue-name}))
   ([channel
     carrot-config
     queue-name
