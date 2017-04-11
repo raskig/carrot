@@ -105,6 +105,12 @@ In case of exponential backoff, you can define your own function to determine th
                         {:auto-ack false}
                         dead-queue-config-function)
 ```
+Here the dead-queue-config-function is a fiction you define which returns the config map for dead letter queues. Example:
+```clojure
+(defn dead-queue-config-function [queue-name]
+  {:arguments {"x-max-length" 1000}})
+```
+
 [Full example code](src/carrot/examples/example.clj)
 
 ## Exception handling
