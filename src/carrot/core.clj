@@ -73,6 +73,11 @@
 
 
 (defn crate-message-handler-function
+  "Creates message-handler function. Parameters:
+  handler: function with your business logoc handling th eincoming message. Input config contains channel, meta and payload
+  routing-key: routing key of the message
+  carrot-system: the carrot config
+  logger-fn: function for logging strings (optional)"
   ([handler routing-key carrot-system logger-fn]
    (partial message-handler handler routing-key carrot-system logger-fn))
   ([handler routing-key carrot-system]
@@ -80,7 +85,9 @@
 
 
 
-(defn declare-system[channel carrot-system]
+(defn declare-system
+  "declares carrot system based on the given connection and config"
+  [channel carrot-system]
   (case (get-in carrot-system [:retry-config :strategy])
     :simple-backoff (delayed-retry/declare-system channel carrot-system)
     :exp-backoff (exp-backoff/declare-system channel carrot-system)))
@@ -88,7 +95,9 @@
 (defn- get-dead-letter-queue-name [queue-name]
   (str queue-name ".dead"))
 
-(defn destroy-system [channel {:keys [retry-exchange dead-letter-exchange retry-queue message-exchange]} queue-name-coll]
+(defn destroy-system
+  "Destroys system (used especially for tests)"
+  [channel {:keys [retry-exchange dead-letter-exchange retry-queue message-exchange]} queue-name-coll]
   (map #(lq/delete channel %) queue-name-coll)
   (map #(lq/delete channel get-dead-letter-queue-name) queue-name-coll)
   (lq/delete channel retry-queue)
@@ -98,6 +107,7 @@
 
 
 (defn subscribe
+  "Subscribe for a message having a retry mechanism provided by carrot"
   ([channel
     {:keys [dead-letter-exchange]}
     queue-name
