@@ -30,7 +30,7 @@ The idea is the following:
 
 * [All releases](https://clojars.org/carrot/versions)
 
-[Leiningen](https://leiningen.org/) dependency information:
+[Leiningen](https://leiningen.org/) [dependency information](https://clojars.org/carrot):
 
    [carrot "2.0.0"]
 
