@@ -24,13 +24,13 @@ The idea is the following:
 
 ## Releases and Dependency Information
 
-* I publish releases to [Clojars]
+* I publish releases to [Clojars](https://clojars.org/)
 
-* Latest release is [carrot "2.0.0"]
+* Latest release is [carrot "2.0.0"](https://clojars.org/carrot)
 
-* [All releases]
+* [All releases](https://clojars.org/carrot/versions)
 
-[Leiningen] dependency information:
+[Leiningen](https://leiningen.org/) dependency information:
 
    [carrot "2.0.0"]
 
